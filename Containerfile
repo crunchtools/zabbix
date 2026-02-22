@@ -1,5 +1,12 @@
 FROM quay.io/crunchtools/ubi10-httpd-php
 
+# Register with RHSM to access full RHEL repos during build
+ARG RHSM_ACTIVATION_KEY
+ARG RHSM_ORG
+RUN if [ -n "$RHSM_ACTIVATION_KEY" ] && [ -n "$RHSM_ORG" ]; then \
+        subscription-manager register --activationkey="$RHSM_ACTIVATION_KEY" --org="$RHSM_ORG"; \
+    fi
+
 # Add Zabbix 7.0 repo
 RUN cat > /etc/yum.repos.d/zabbix.repo <<'EOF'
 [zabbix]
@@ -33,6 +40,9 @@ RUN dnf install -y \
 # internally for Script items — with the minimal package, HTTPS requests to
 # external APIs (like CloudFlare) silently fail with timeouts.
 RUN dnf swap -y libcurl-minimal libcurl && dnf clean all
+
+# Unregister from RHSM to avoid leaking entitlements in the image
+RUN subscription-manager unregister 2>/dev/null || true
 
 # Serve Zabbix at / instead of /zabbix, remove default welcome page
 RUN sed -i 's|Alias /zabbix /usr/share/zabbix|Alias / /usr/share/zabbix/|' /etc/httpd/conf.d/zabbix.conf && \
