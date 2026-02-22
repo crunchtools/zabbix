@@ -42,6 +42,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Debug image
+        run: |
+          echo "=== docker images ==="
+          docker images zabbix:test
+          echo "=== quick smoke test ==="
+          docker run --rm --entrypoint /bin/sh zabbix:test -c "echo OK; rpm -qa | head -5" || echo "EXIT CODE: $?"
+
       - name: Run static tests
         run: |
           chmod +x tests/test-image.sh
