@@ -293,7 +293,15 @@ run_runtime_tests() {
 
     if ! $zbx_ready; then
         echo "  DEBUG: zabbix-server did not bind port 10051 within 60s"
+        echo "  DEBUG: drop-in files:"
+        rexec ls -la /etc/systemd/system/zabbix-server.service.d/ 2>&1 || true
+        echo "  DEBUG: /run/zabbix:"
+        rexec ls -la /run/zabbix/ 2>&1 || true
+        echo "  DEBUG: zabbix_server.log (last 20 lines):"
+        rexec tail -20 /var/log/zabbix/zabbix_server.log 2>&1 || true
+        echo "  DEBUG: systemctl status:"
         rexec systemctl status zabbix-server.service --no-pager 2>&1 || true
+        echo "  DEBUG: journal:"
         rexec journalctl -u zabbix-server.service --no-pager -n 20 2>&1 || true
     fi
 
