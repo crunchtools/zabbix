@@ -1,0 +1,13 @@
+[Unit]
+Description=Zabbix DB user and schema setup
+After=postgresql.service
+Before=zabbix-server.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/zabbix-db-setup.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

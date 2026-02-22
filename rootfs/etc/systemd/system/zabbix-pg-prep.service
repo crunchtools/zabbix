@@ -1,0 +1,12 @@
+[Unit]
+Description=Zabbix PostgreSQL data preparation
+After=local-fs.target
+Before=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/zabbix-pg-prep.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
