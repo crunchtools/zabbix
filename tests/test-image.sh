@@ -8,8 +8,10 @@ FAIL=0
 MODE="all"
 IMAGE=""
 
-# Auto-detect container runtime (prefer podman, fall back to docker)
-if command -v podman &>/dev/null; then
+# Container runtime: honor env var, otherwise prefer podman
+if [ -n "${CONTAINER_RUNTIME:-}" ]; then
+    RUNTIME="$CONTAINER_RUNTIME"
+elif command -v podman &>/dev/null; then
     RUNTIME="podman"
 elif command -v docker &>/dev/null; then
     RUNTIME="docker"

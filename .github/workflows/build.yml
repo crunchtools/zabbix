@@ -13,6 +13,7 @@ on:
 env:
   REGISTRY: quay.io
   IMAGE_NAME: crunchtools/zabbix
+  CONTAINER_RUNTIME: docker
 
 jobs:
   build-and-test:
@@ -41,13 +42,6 @@ jobs:
             org_id=${{ secrets.RHSM_ORG_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Debug image
-        run: |
-          echo "=== docker images ==="
-          docker images zabbix:test
-          echo "=== quick smoke test ==="
-          docker run --rm --entrypoint /bin/sh zabbix:test -c "echo OK; rpm -qa | head -5" || echo "EXIT CODE: $?"
 
       - name: Run static tests
         run: |
