@@ -194,10 +194,12 @@ run_runtime_tests() {
     echo ""
     echo "--- Starting container with systemd ---"
 
-    # Start the container with systemd (privileged required for systemd in GHA)
+    # Start the container with systemd
+    # --cgroupns=host is required for systemd on cgroupv2 (GHA ubuntu-latest)
     $RUNTIME run -d \
         --name "$CONTAINER_NAME" \
         --privileged \
+        --cgroupns=host \
         --tmpfs /run \
         --tmpfs /tmp \
         -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
