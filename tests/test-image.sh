@@ -47,7 +47,7 @@ fi
 
 # Helper: run a command inside the image (no systemd, just exec)
 run_in() {
-    $RUNTIME run --rm --entrypoint "" "$IMAGE" "$@"
+    $RUNTIME run --rm --entrypoint /bin/sh "$IMAGE" -c "$*"
 }
 
 # =============================================================================
