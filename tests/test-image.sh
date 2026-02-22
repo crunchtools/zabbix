@@ -8,8 +8,18 @@ FAIL=0
 MODE="all"
 IMAGE=""
 
-pass() { ((PASS++)); echo "  PASS: $1"; }
-fail() { ((FAIL++)); echo "  FAIL: $1"; }
+# Auto-detect container runtime (prefer podman, fall back to docker)
+if command -v podman &>/dev/null; then
+    RUNTIME="podman"
+elif command -v docker &>/dev/null; then
+    RUNTIME="docker"
+else
+    echo "ERROR: Neither podman nor docker found"
+    exit 1
+fi
+
+pass() { PASS=$((PASS + 1)); echo "  PASS: $1"; }
+fail() { FAIL=$((FAIL + 1)); echo "  FAIL: $1"; }
 
 check() {
     local desc="$1"; shift
@@ -37,7 +47,7 @@ fi
 
 # Helper: run a command inside the image (no systemd, just exec)
 run_in() {
-    docker run --rm "$IMAGE" "$@"
+    $RUNTIME run --rm --entrypoint "" "$IMAGE" "$@"
 }
 
 # =============================================================================
@@ -167,7 +177,7 @@ run_static_tests() {
     echo ""
     echo "--- Entrypoint ---"
     check "Entrypoint is /sbin/init" \
-        'docker inspect --format="{{json .Config.Entrypoint}}" "$IMAGE" | grep -q "/sbin/init"'
+        '$RUNTIME inspect --format="{{json .Config.Entrypoint}}" "$IMAGE" | grep -q "/sbin/init"'
 }
 
 # =============================================================================
@@ -183,7 +193,7 @@ run_runtime_tests() {
     echo "--- Starting container with systemd ---"
 
     # Start the container with systemd (privileged required for systemd in GHA)
-    docker run -d \
+    $RUNTIME run -d \
         --name "$CONTAINER_NAME" \
         --privileged \
         --tmpfs /run \
@@ -192,13 +202,13 @@ run_runtime_tests() {
         "$IMAGE"
 
     # Cleanup on exit
-    trap "docker rm -f $CONTAINER_NAME >/dev/null 2>&1 || true" EXIT
+    trap "$RUNTIME rm -f $CONTAINER_NAME >/dev/null 2>&1 || true" EXIT
 
     # Wait for systemd to initialize (up to 30s)
     echo "  Waiting for systemd to boot..."
     local ready=false
     for i in $(seq 1 30); do
-        if docker exec "$CONTAINER_NAME" systemctl is-system-running --wait 2>/dev/null | grep -qE "running|degraded"; then
+        if $RUNTIME exec "$CONTAINER_NAME" systemctl is-system-running --wait 2>/dev/null | grep -qE "running|degraded"; then
             ready=true
             break
         fi
@@ -213,7 +223,7 @@ run_runtime_tests() {
     echo "  Waiting for database initialization (up to 120s)..."
     local db_ready=false
     for i in $(seq 1 120); do
-        if docker exec "$CONTAINER_NAME" su - postgres -c "psql -d zabbix -c 'SELECT 1'" >/dev/null 2>&1; then
+        if $RUNTIME exec "$CONTAINER_NAME" su - postgres -c "psql -d zabbix -c 'SELECT 1'" >/dev/null 2>&1; then
             db_ready=true
             break
         fi
@@ -223,14 +233,14 @@ run_runtime_tests() {
     if ! $db_ready; then
         echo "  WARNING: Database did not come up within 120s"
         echo "  --- Debug: systemctl status ---"
-        docker exec "$CONTAINER_NAME" systemctl status --no-pager 2>&1 || true
+        $RUNTIME exec "$CONTAINER_NAME" systemctl status --no-pager 2>&1 || true
         echo "  --- Debug: journal ---"
-        docker exec "$CONTAINER_NAME" journalctl --no-pager -n 50 2>&1 || true
+        $RUNTIME exec "$CONTAINER_NAME" journalctl --no-pager -n 50 2>&1 || true
     fi
 
     # Helper for runtime checks
     rexec() {
-        docker exec "$CONTAINER_NAME" "$@"
+        $RUNTIME exec "$CONTAINER_NAME" "$@"
     }
 
     echo ""
@@ -310,7 +320,7 @@ run_runtime_tests() {
         'rexec ss -tlnp | grep -q 10051'
 
     # Cleanup
-    docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+    $RUNTIME rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
     trap - EXIT
 }
 
