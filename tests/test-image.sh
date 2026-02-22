@@ -281,10 +281,10 @@ run_runtime_tests() {
 
     echo ""
     echo "--- Zabbix Server ---"
-    # Wait for zabbix_server process to start (up to 30s after schema)
+    # Wait for zabbix-server to listen on port 10051 (up to 60s after schema)
     local zbx_ready=false
-    for i in $(seq 1 30); do
-        if rexec pgrep -x zabbix_server >/dev/null 2>&1; then
+    for i in $(seq 1 60); do
+        if rexec ss -tlnp 2>/dev/null | grep -q 10051; then
             zbx_ready=true
             break
         fi
