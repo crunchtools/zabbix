@@ -1,10 +1,12 @@
 FROM quay.io/crunchtools/ubi10-httpd-php
 
-# Register with RHSM to access full RHEL repos during build
-ARG RHSM_ACTIVATION_KEY
-ARG RHSM_ORG_ID
-RUN if [ -n "$RHSM_ACTIVATION_KEY" ] && [ -n "$RHSM_ORG_ID" ]; then \
-        subscription-manager register --activationkey="$RHSM_ACTIVATION_KEY" --org="$RHSM_ORG_ID"; \
+# Register with RHSM using activation key (secrets mounted at build time, never in image layers)
+RUN --mount=type=secret,id=activation_key \
+    --mount=type=secret,id=org_id \
+    if [ -f /run/secrets/activation_key ] && [ -f /run/secrets/org_id ]; then \
+        subscription-manager register \
+            --activationkey="$(cat /run/secrets/activation_key)" \
+            --org="$(cat /run/secrets/org_id)"; \
     fi
 
 # Copy config files, scripts, and systemd units into the image
