@@ -1,0 +1,8 @@
+# Data directories - runtime data
+data/
+
+# Credentials
+admin-credentials.txt
+
+# Claude
+.claude/
