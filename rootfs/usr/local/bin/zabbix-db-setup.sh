@@ -28,7 +28,7 @@ if [ ! -f "$MARKER" ]; then
     TABLE_COUNT=$(su - postgres -c "psql -t -d zabbix -c \"SELECT count(*) FROM information_schema.tables WHERE table_schema='public'\"" 2>/dev/null | tr -d ' ')
     if [ "$TABLE_COUNT" -eq 0 ] 2>/dev/null; then
         echo "zabbix-db-setup: Importing Zabbix schema..."
-        zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | su - postgres -c "psql -d zabbix"
+        zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | su - postgres -c "psql -U zabbix -d zabbix"
     fi
     touch "$MARKER"
 fi
