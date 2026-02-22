@@ -196,11 +196,11 @@ run_runtime_tests() {
 
     # Start the container with systemd
     # --cgroupns=host is required for systemd on cgroupv2 (GHA ubuntu-latest)
+    # Do NOT mount --tmpfs /run — systemd manages /run itself via tmpfiles.d
     $RUNTIME run -d \
         --name "$CONTAINER_NAME" \
         --privileged \
         --cgroupns=host \
-        --tmpfs /run \
         --tmpfs /tmp \
         -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
         "$IMAGE"
