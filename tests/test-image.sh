@@ -293,12 +293,26 @@ run_runtime_tests() {
 
     if ! $zbx_ready; then
         echo "  DEBUG: zabbix-server did not bind port 10051 within 60s"
-        echo "  DEBUG: foreground test (5s):"
-        rexec timeout 5 /usr/sbin/zabbix_server -c /etc/zabbix/zabbix_server.conf -f 2>&1 || true
+        echo "  DEBUG: zabbix_server.log:"
+        rexec cat /var/log/zabbix/zabbix_server.log 2>&1 || echo "    (no log file)"
+        echo "  DEBUG: journal:"
+        rexec journalctl -u zabbix-server.service --no-pager -n 20 2>&1 || true
+        echo "  DEBUG: systemd drop-in:"
+        rexec systemctl cat zabbix-server.service 2>&1 || true
         echo "  DEBUG: /run/zabbix:"
         rexec ls -la /run/zabbix/ 2>&1 || true
-        echo "  DEBUG: journal:"
-        rexec journalctl -u zabbix-server.service --no-pager -n 10 2>&1 || true
+        echo "  DEBUG: stopping service for manual foreground test..."
+        rexec systemctl stop zabbix-server.service 2>&1 || true
+        sleep 2
+        echo "  DEBUG: foreground test (5s):"
+        rexec timeout 5 /usr/sbin/zabbix_server -c /etc/zabbix/zabbix_server.conf -f 2>&1 || true
+        echo "  DEBUG: zabbix_server.log after foreground test:"
+        rexec cat /var/log/zabbix/zabbix_server.log 2>&1 || echo "    (no log file)"
+        echo "  DEBUG: zabbix config (DBHost/DBName/DBSocket):"
+        rexec grep -E '^(DB|Log|PidFile|SocketDir)' /etc/zabbix/zabbix_server.conf 2>&1 || true
+        echo "  DEBUG: fping permissions:"
+        rexec ls -la /usr/sbin/fping 2>&1 || true
+        rexec getcap /usr/sbin/fping 2>&1 || true
     fi
 
     check "zabbix-server process is running" \
