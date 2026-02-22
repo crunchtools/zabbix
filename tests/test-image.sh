@@ -291,6 +291,12 @@ run_runtime_tests() {
         sleep 1
     done
 
+    if ! $zbx_ready; then
+        echo "  DEBUG: zabbix-server did not bind port 10051 within 60s"
+        rexec systemctl status zabbix-server.service --no-pager 2>&1 || true
+        rexec journalctl -u zabbix-server.service --no-pager -n 20 2>&1 || true
+    fi
+
     check "zabbix-server process is running" \
         rexec pgrep -x zabbix_server
     check "zabbix-server.service is active" \
